@@ -1,14 +1,20 @@
 package ai.kitt.snowboy;
 
+import ai.kitt.snowboy.audio.RecordingService;
 import ai.kitt.snowboy.audio.RecordingThread;
 import ai.kitt.snowboy.audio.PlaybackThread;
 
 import android.app.Activity;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.text.Html;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -23,6 +29,8 @@ import ai.kitt.snowboy.demo.R;
 
 public class Demo extends Activity {
 
+
+    public static final String TAG = "DemoActivity";
     private Button record_button;
     private Button play_button;
     private TextView log;
@@ -32,12 +40,15 @@ public class Demo extends Activity {
     private int preVolume = -1;
     private static long activeTimes = 0;
 
-    private RecordingThread recordingThread;
     private PlaybackThread playbackThread;
+
+RecordingService recordingService;
+    private RecordingService mService;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
 
         setContentView(R.layout.main);
         setUI();
@@ -47,8 +58,11 @@ public class Demo extends Activity {
           AppResCopy.copyResFromAssetsToSD(this);
         
         activeTimes = 0;
-        recordingThread = new RecordingThread(handle, new AudioDataSaver());
         playbackThread = new PlaybackThread();
+        recordingService = new RecordingService();
+
+
+
     }
     
     void showToast(CharSequence msg) {
@@ -102,13 +116,13 @@ public class Demo extends Activity {
     }
 
     private void startRecording() {
-        recordingThread.startRecording();
+//        recordingThread.startRecording();
         updateLog(" ----> recording started ...", "green");
         record_button.setText(R.string.btn1_stop);
     }
 
     private void stopRecording() {
-        recordingThread.stopRecording();
+//        recordingThread.stopRecording();
         updateLog(" ----> recording stopped ", "green");
         record_button.setText(R.string.btn1_start);
     }
@@ -134,27 +148,16 @@ public class Demo extends Activity {
     private OnClickListener record_button_handle = new OnClickListener() {
         // @Override
         public void onClick(View arg0) {
-            if(record_button.getText().equals(getResources().getString(R.string.btn1_start))) {
-                stopPlayback();
-                sleep();
-                startRecording();
-            } else {
-                stopRecording();
-                sleep();
-            }
+            Demo.this.startService(new Intent(Demo.this, RecordingService.class));
+
         }
     };
     
     private OnClickListener play_button_handle = new OnClickListener() {
         // @Override
         public void onClick(View arg0) {
-            if (play_button.getText().equals(getResources().getString(R.string.btn2_start))) {
-                stopRecording();
-                sleep();
-                startPlayback();
-            } else {
-                stopPlayback();
-            }
+            Demo.this.stopService(new Intent(Demo.this, RecordingService.class));
+
         }
     };
      
@@ -243,10 +246,25 @@ public class Demo extends Activity {
         log.setText("");
     }
 
+
+
+
     @Override
      public void onDestroy() {
          restoreVolume();
-         recordingThread.stopRecording();
+
          super.onDestroy();
      }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "onStop: ");
+    }
+
+
+
+
+
+
 }
